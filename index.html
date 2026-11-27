@@ -7447,18 +7447,32 @@ function setupTouch() {
   else { const st = document.getElementById('stick'); if (st) st.remove(); }
   wrap.querySelectorAll('[data-a]').forEach(b => {
     const acts = b.dataset.a.split(',');
-    const on = e => { e.preventDefault(); AU.init(); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) {} acts.forEach(a => IN.setTouch(a, true)); };
-    const off = e => { e.preventDefault(); b.classList.remove('on'); acts.forEach(a => IN.setTouch(a, false)); };
-    b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
+    let pid = null;
+    const off = () => { if (pid !== null) TOUCH_ACTIVE.delete(pid); pid = null; b.classList.remove('on'); acts.forEach(a => IN.setTouch(a, false)); };
+    const on = e => { e.preventDefault(); AU.init(); if (pid !== null) off(); pid = e.pointerId; TOUCH_ACTIVE.set(pid, off); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) {} acts.forEach(a => IN.setTouch(a, true)); };
+    b.addEventListener('pointerdown', on);
+    b.addEventListener('lostpointercapture', e => { if (e.pointerId === pid) off(); });
     b.addEventListener('contextmenu', e => e.preventDefault());
   });
   if (document.getElementById('stick')) setupStick();
-  // playing with a controller hides the on-screen buttons; touching the screen brings them back
-  setInterval(() => wrap.classList.toggle('padmode', IN.lastDevice === 'pad'), 250);
+  // release fingers wherever they are lifted (even off the button), and whenever the game loses focus
+  const lift = e => { const f = TOUCH_ACTIVE.get(e.pointerId); if (f) f(); TOUCH_DOWN.delete(e.pointerId); };
+  addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') TOUCH_DOWN.add(e.pointerId); }, true);
+  addEventListener('pointerup', lift, true); addEventListener('pointercancel', lift, true);
+  addEventListener('blur', releaseTouch); addEventListener('pagehide', releaseTouch);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) releaseTouch(); });
+  let lastState = GAME.state;
+  setInterval(() => {
+    const pad = IN.lastDevice === 'pad'; if (pad && !wrap.classList.contains('padmode')) releaseTouch(); wrap.classList.toggle('padmode', pad); // playing with a controller hides the on-screen buttons
+    if (GAME.state !== lastState) { if (GAME.state === 'pause') releaseTouch(); lastState = GAME.state; }
+    if (!TOUCH_DOWN.size && (TOUCH_ACTIVE.size || ACTIONS.some(a => IN.touch[a]))) releaseTouch(); // safety net: nothing touches the screen, so nothing may stay held
+  }, 120);
   addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && IN.lastDevice === 'pad') { IN.lastDevice = 'touch'; wrap.classList.remove('padmode'); } }, true);
 }
 // Analog-style movement stick: the knob follows the finger inside the ring; tilt maps to left/right/up/down.
 let TOUCH_XBOX = false;
+const TOUCH_ACTIVE = new Map(), TOUCH_DOWN = new Set(); // pointerId -> release fn; fingers currently on the screen
+function releaseTouch() { const ld = IN.lastDevice; for (const f of [...TOUCH_ACTIVE.values()]) f(); TOUCH_ACTIVE.clear(); TOUCH_DOWN.clear(); IN.touch = {}; IN.lastDevice = ld; }
 function setupStick() {
   const st = document.getElementById('stick'), base = document.getElementById('sbase'), knob = document.getElementById('knob'); if (!st) return;
   let pid = null; const held = { left: false, right: false, up: false, down: false };
@@ -7470,10 +7484,10 @@ function setupStick() {
     const nx = dx / lim, ny = dy / lim;
     set('left', nx < -0.32); set('right', nx > 0.32); set('down', ny > 0.5); set('up', ny < -0.55);
   };
-  const end = e => { if (e.pointerId !== pid) return; pid = null; st.classList.remove('on'); knob.style.transform = ''; for (const a of Object.keys(held)) set(a, false); };
-  st.addEventListener('pointerdown', e => { e.preventDefault(); if (pid !== null) return; pid = e.pointerId; AU.init(); st.classList.add('on'); try { st.setPointerCapture(pid); } catch (_) {} move(e); });
-  st.addEventListener('pointermove', e => { if (e.pointerId === pid) { e.preventDefault(); move(e); } });
-  st.addEventListener('pointerup', end); st.addEventListener('pointercancel', end); st.addEventListener('lostpointercapture', end);
+  const release = () => { if (pid !== null) TOUCH_ACTIVE.delete(pid); pid = null; st.classList.remove('on'); knob.style.transform = ''; for (const a of Object.keys(held)) { held[a] = false; IN.setTouch(a, false); } };
+  st.addEventListener('pointerdown', e => { e.preventDefault(); if (pid !== null) release(); /* a stale finger never blocks a new one */ pid = e.pointerId; TOUCH_ACTIVE.set(pid, release); AU.init(); st.classList.add('on'); try { st.setPointerCapture(pid); } catch (_) {} move(e); });
+  addEventListener('pointermove', e => { if (e.pointerId === pid) { e.preventDefault(); move(e); } }, { passive: false }); // keep tracking even if capture failed
+  st.addEventListener('lostpointercapture', e => { if (e.pointerId === pid) release(); });
   st.addEventListener('contextmenu', e => e.preventDefault());
 }
 
