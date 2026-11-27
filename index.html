@@ -7414,8 +7414,9 @@ function setupTouch() {
   const coarse = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window || QS.has('touch');
   if (!coarse) return;
   wrap.hidden = false;
-  // Android app (its WebView tags the user agent) and home-screen web apps (iPhone/iPad) get the analog stick; everything else keeps the ◀ ▶ ▼ buttons
-  if (/ChainsawBloodApp/.test(navigator.userAgent) || navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) || QS.has('stick')) { for (const id of ['tl', 'tr', 'td']) { const el = document.getElementById(id); if (el) el.remove(); } document.getElementById('stick').hidden = false; }
+  // Android app (its WebView tags the user agent), iPhone/iPad (Safari or home screen) and home-screen web apps get the analog stick; everything else keeps the ◀ ▶ ▼ buttons
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (/ChainsawBloodApp/.test(navigator.userAgent) || isIOS || navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) || QS.has('stick')) { for (const id of ['tl', 'tr', 'td']) { const el = document.getElementById(id); if (el) el.remove(); } document.getElementById('stick').hidden = false; }
   else { const st = document.getElementById('stick'); if (st) st.remove(); }
   wrap.querySelectorAll('[data-a]').forEach(b => {
     const acts = b.dataset.a.split(',');
