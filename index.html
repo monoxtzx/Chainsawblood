@@ -25,13 +25,16 @@
     border-radius: 50%; font: 600 15px Kanit, Tahoma, sans-serif; touch-action: none; -webkit-tap-highlight-color: transparent; padding: 0; }
   #touch button.on { background: var(--btn-on); border-color: #fff; }
   #touch button:focus-visible { outline: 2px solid #ffd040; }
-  .dpad { width: 72px; height: 72px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); font-size: 26px !important; }
-  #tl { left: calc(16px + env(safe-area-inset-left, 0px)); }
-  #tr { left: calc(100px + env(safe-area-inset-left, 0px)); }
-  #td { width: 56px !important; height: 44px !important; border-radius: 14px !important; left: calc(58px + env(safe-area-inset-left, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); font-size: 18px !important; }
+  #tleft, #tright { position: absolute; bottom: env(safe-area-inset-bottom, 0px); width: 190px; height: 190px; pointer-events: none; }
+  #tleft { left: env(safe-area-inset-left, 0px); transform-origin: 0 100%; transform: scale(var(--tsl, 1)); }
+  #tright { right: env(safe-area-inset-right, 0px); transform-origin: 100% 100%; transform: scale(var(--tsr, 1)); }
+  .dpad { width: 72px; height: 72px; bottom: 18px; font-size: 26px !important; }
+  #tl { left: 16px; }
+  #tr { left: 100px; }
+  #td { width: 56px !important; height: 44px !important; border-radius: 14px !important; left: 58px; bottom: 96px; font-size: 18px !important; }
   #stick[hidden], #touch button[hidden] { display: none; }
   #touch.padmode { display: none; }
-  #stick { position: absolute; pointer-events: auto; width: 176px; height: 176px; left: calc(-6px + env(safe-area-inset-left, 0px)); bottom: calc(-10px + env(safe-area-inset-bottom, 0px)); touch-action: none; }
+  #stick { position: absolute; pointer-events: auto; width: 176px; height: 176px; left: -6px; bottom: -10px; touch-action: none; }
   #sbase { position: absolute; left: 28px; top: 28px; width: 120px; height: 120px; border-radius: 50%; border: 2px solid var(--btn-line); background: radial-gradient(circle, rgba(255,255,255,0.06) 0 40%, rgba(255,255,255,0.13) 41% 100%); box-sizing: border-box; }
   #stick.on #sbase { border-color: #fff; background: radial-gradient(circle, rgba(255,60,40,0.12) 0 40%, rgba(255,60,40,0.28) 41% 100%); }
   #knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255,255,255,0.32); border: 2px solid rgba(255,255,255,0.7); box-sizing: border-box; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
@@ -42,10 +45,10 @@
   .ar.l { top: 50%; left: 6px; margin-top: -7px; border-right-color: #fff; border-left-width: 0; }
   .ar.r { top: 50%; right: 6px; margin-top: -7px; border-left-color: #fff; border-right-width: 0; }
   .act { width: 64px; height: 64px; }
-  #tj { right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: 76px; height: 76px; }
-  #ta { right: calc(100px + env(safe-area-inset-right, 0px)); bottom: calc(34px + env(safe-area-inset-bottom, 0px)); }
-  #tx { right: calc(26px + env(safe-area-inset-right, 0px)); bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
-  #tv { right: calc(104px + env(safe-area-inset-right, 0px)); bottom: calc(108px + env(safe-area-inset-bottom, 0px)); background: rgba(200,20,30,0.3) !important; }
+  #tj { right: 16px; bottom: 18px; width: 76px; height: 76px; }
+  #ta { right: 100px; bottom: 34px; }
+  #tx { right: 26px; bottom: 104px; }
+  #tv { right: 104px; bottom: 108px; background: rgba(200,20,30,0.3) !important; }
   #tp { top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: 44px; height: 32px; border-radius: 10px !important; font-size: 13px !important; }
   #rot { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); color: #fff;
     font: 600 18px Kanit, Tahoma, sans-serif; text-align: center; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
@@ -54,14 +57,18 @@
 </style>
 <canvas id="game" aria-label="Chainsaw Blood game screen"></canvas>
 <div id="touch" hidden>
+  <div id="tleft">
   <button id="tl" class="dpad" data-a="left" aria-label="ซ้าย">◀</button>
   <button id="tr" class="dpad" data-a="right" aria-label="ขวา">▶</button>
   <button id="td" data-a="down" aria-label="ลง">▼</button>
   <div id="stick" hidden role="slider" aria-label="จอยเคลื่อนที่ (ลากซ้าย ขวา ขึ้น ลง)"><div id="sbase"><i class="ar u"></i><i class="ar d"></i><i class="ar l"></i><i class="ar r"></i><div id="knob"></div></div></div>
+  </div>
+  <div id="tright">
   <button id="tj" class="act" data-a="jump,confirm" aria-label="กระโดด">กระโดด</button>
   <button id="ta" class="act" data-a="attack" aria-label="ฟัน">ฟัน</button>
   <button id="tx" class="act" data-a="dash" aria-label="พุ่ง">พุ่ง</button>
   <button id="tv" class="act" data-a="transform" aria-label="แปลงร่าง">แปลง</button>
+  </div>
   <button id="tp" data-a="pause" aria-label="หยุดเกม">❚❚</button>
 </div>
 <div id="rot">หมุนโทรศัพท์เป็นแนวนอน<br>เพื่อเล่นเต็มจอ</div>
@@ -7167,6 +7174,8 @@ const SCREENS = {
       { label: () => `จอยสั่น: ${SAVE.data.rumble === false ? 'ปิด' : 'เปิด'}`, act: toggleRumble, side: toggleRumble },
       { label: () => `บทเริ่มด่าน: ${SAVE.data.stageTalk === false ? 'ปิด' : 'เปิด'}`, act: toggleTalk, side: toggleTalk },
       { label: () => `แถบแปลงร่าง: ${SAVE.data.cutin ? 'เปิด' : 'ปิด'}`, act: toggleCutin, side: toggleCutin },
+      { label: () => `ขนาดปุ่มเคลื่อนที่: ${Math.round((SAVE.data.btnScaleL || 1) * 100)}%`, act: () => btnScale('L', 1, true), side: d => btnScale('L', d) },
+      { label: () => `ขนาดปุ่มต่อสู้: ${Math.round((SAVE.data.btnScaleR || 1) * 100)}%`, act: () => btnScale('R', 1, true), side: d => btnScale('R', d) },
       { label: () => `เต็มจอ: ${isFullscreen() ? 'เปิด' : 'ปิด'}  (F11)`, act: toggleFS, side: toggleFS },
       { label: 'กลับ', act: closeSettings },
     ],
@@ -7342,6 +7351,12 @@ function cycleDiff(d) { const ks = Object.keys(DIFFS); SAVE.data.diff = ks[(ks.i
 function toggleRumble() { SAVE.data.rumble = SAVE.data.rumble === false; AU.sfx('select'); SAVE.save(); if (SAVE.data.rumble) rumble(0.7, 0.7, 250); }
 function openSettings(from, sel) { if (GAME.stateT < 2) return; GAME.setFrom = from; GAME.setSel = sel; GAME.go('settings', 0); }
 function closeSettings() { GAME.go(GAME.setFrom || 'title', GAME.setSel || 0); }
+function applyBtnScale() { const r = document.documentElement.style; r.setProperty('--tsl', SAVE.data.btnScaleL || 1); r.setProperty('--tsr', SAVE.data.btnScaleR || 1); }
+function btnScale(side, d, wrap) { // 70%..160% in 10% steps; confirm/tap cycles back to 70% after 160%
+  const k = 'btnScale' + side; let v = Math.round((SAVE.data[k] || 1) * 10) + d;
+  if (v > 16) v = wrap ? 7 : 16; if (v < 7) v = 7;
+  SAVE.data[k] = v / 10; SAVE.save(); applyBtnScale(); AU.sfx('select');
+}
 function toggleFS() { AU.sfx('select'); toggleFullscreen(); }
 function toggleTalk() { SAVE.data.stageTalk = SAVE.data.stageTalk === false; AU.sfx('select'); SAVE.save(); }
 function toggleCutin() { SAVE.data.cutin = !SAVE.data.cutin; AU.sfx('select'); SAVE.save(); }
@@ -7414,6 +7429,7 @@ function setupTouch() {
   const coarse = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window || QS.has('touch');
   if (!coarse) return;
   wrap.hidden = false;
+  applyBtnScale();
   // Android app (its WebView tags the user agent), iPhone/iPad (Safari or home screen) and home-screen web apps get the analog stick; everything else keeps the ◀ ▶ ▼ buttons
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (/ChainsawBloodApp/.test(navigator.userAgent) || isIOS || navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) || QS.has('stick')) { for (const id of ['tl', 'tr', 'td']) { const el = document.getElementById(id); if (el) el.remove(); } document.getElementById('stick').hidden = false; }
