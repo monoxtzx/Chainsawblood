@@ -49,6 +49,15 @@
   #ta { right: 100px; bottom: 34px; }
   #tx { right: 26px; bottom: 104px; }
   #tv { right: 104px; bottom: 108px; background: rgba(200,20,30,0.3) !important; }
+  #touch.xbox .act { width: 62px !important; height: 62px !important; background: rgba(0,0,0,0.35) !important; font: 700 28px Arial, Helvetica, sans-serif !important; border-width: 3px; }
+  #touch.xbox #tj { right: 64px; bottom: 6px; color: #5ed24a; border-color: rgba(94,210,74,0.75); }
+  #touch.xbox #tx { right: 6px; bottom: 64px; color: #ff5a5a; border-color: rgba(255,90,90,0.75); }
+  #touch.xbox #ta { right: 122px; bottom: 64px; color: #4aa8ff; border-color: rgba(74,168,255,0.75); }
+  #touch.xbox #tv { right: 64px; bottom: 122px; color: #ffd23a; border-color: rgba(255,210,58,0.75); }
+  #touch.xbox #tj.on { background: rgba(94,210,74,0.6) !important; color: #fff; }
+  #touch.xbox #tx.on { background: rgba(255,90,90,0.6) !important; color: #fff; }
+  #touch.xbox #ta.on { background: rgba(74,168,255,0.6) !important; color: #fff; }
+  #touch.xbox #tv.on { background: rgba(255,210,58,0.6) !important; color: #fff; }
   #tp { top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: 44px; height: 32px; border-radius: 10px !important; font-size: 13px !important; }
   #rot { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); color: #fff;
     font: 600 18px Kanit, Tahoma, sans-serif; text-align: center; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
@@ -6950,8 +6959,8 @@ class Session {
     if (this.combo >= 2) { const s = 1 + (this.comboPop || 0) * 0.05; UI.text(this.combo + ' HITS', W - 6, 44, { size: 8 * s, align: 'right', color: this.combo >= 10 ? '#ff3a2a' : this.combo >= 5 ? '#ffb030' : '#ffffff', stroke: 1 }); UI.rect(W - 56, 51, 50 * this.comboT / 90, 2, '#ffd040'); }
     if (!P.devil && P.gauge >= 100) {
       const col = this.t % 20 < 10 ? '#ff4040' : '#ffd040';
-      if (P.ch.fullHint) { const dev = IN.lastDevice; UI.text(dev === 'touch' ? 'แตะ แปลง: FOX DEVIL!' : dev === 'pad' ? 'Y : FOX DEVIL!' : P.ch.fullHint[0], 86, 21, { size: 5, color: col }); UI.text(dev === 'pad' ? 'ค้าง Y : แปลงร่าง' : dev === 'touch' ? 'ค้าง แปลง : แปลงร่าง' : P.ch.fullHint[1], 86, 29, { size: 4, color: '#ddd' }); }
-      else UI.text(IN.lastDevice === 'touch' ? 'กด แปลง!' : IN.lastDevice === 'pad' ? 'Y : DEVIL!' : 'V : DEVIL!', 86, 22, { size: 5, color: col });
+      if (P.ch.fullHint) { const dev = IN.lastDevice; UI.text(dev === 'touch' && !TOUCH_XBOX ? 'แตะ แปลง: FOX DEVIL!' : dev === 'pad' || dev === 'touch' ? 'Y : FOX DEVIL!' : P.ch.fullHint[0], 86, 21, { size: 5, color: col }); UI.text(dev === 'pad' ? 'ค้าง Y : แปลงร่าง' : dev === 'touch' ? 'ค้าง แปลง : แปลงร่าง' : P.ch.fullHint[1], 86, 29, { size: 4, color: '#ddd' }); }
+      else UI.text(IN.lastDevice === 'touch' && !TOUCH_XBOX ? 'กด แปลง!' : IN.lastDevice === 'pad' || IN.lastDevice === 'touch' ? 'Y : DEVIL!' : 'V : DEVIL!', 86, 22, { size: 5, color: col });
     }
     if (P.devil) UI.text('DEVIL ' + Math.ceil(P.devil / 60) + 's', 86, 22, { size: 5, color: '#ff6060' });
     const B = this.boss;
@@ -7432,7 +7441,9 @@ function setupTouch() {
   applyBtnScale();
   // Android app (its WebView tags the user agent), iPhone/iPad (Safari or home screen) and home-screen web apps get the analog stick; everything else keeps the ◀ ▶ ▼ buttons
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (/ChainsawBloodApp/.test(navigator.userAgent) || isIOS || navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) || QS.has('stick')) { for (const id of ['tl', 'tr', 'td']) { const el = document.getElementById(id); if (el) el.remove(); } document.getElementById('stick').hidden = false; }
+  if (/ChainsawBloodApp/.test(navigator.userAgent) || isIOS || navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) || QS.has('stick')) { for (const id of ['tl', 'tr', 'td']) { const el = document.getElementById(id); if (el) el.remove(); } document.getElementById('stick').hidden = false;
+    wrap.classList.add('xbox'); TOUCH_XBOX = true; // phone layout: A/B/X/Y diamond like an Xbox pad
+    for (const [id, t] of [['tj', 'A'], ['ta', 'X'], ['tx', 'B'], ['tv', 'Y']]) { const el = document.getElementById(id); if (el) el.textContent = t; } }
   else { const st = document.getElementById('stick'); if (st) st.remove(); }
   wrap.querySelectorAll('[data-a]').forEach(b => {
     const acts = b.dataset.a.split(',');
@@ -7447,6 +7458,7 @@ function setupTouch() {
   addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && IN.lastDevice === 'pad') { IN.lastDevice = 'touch'; wrap.classList.remove('padmode'); } }, true);
 }
 // Analog-style movement stick: the knob follows the finger inside the ring; tilt maps to left/right/up/down.
+let TOUCH_XBOX = false;
 function setupStick() {
   const st = document.getElementById('stick'), base = document.getElementById('sbase'), knob = document.getElementById('knob'); if (!st) return;
   let pid = null; const held = { left: false, right: false, up: false, down: false };
