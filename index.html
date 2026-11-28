@@ -4661,25 +4661,25 @@ class BombDevil extends Boss {
         this.pose = 'grab'; this.x += this.vx; this.y += this.vy; this.clampArena(2);
         if (this.st % 2 === 0) { g.afterimages.push({ boss: this, x: this.x, y: this.y, life: 10 }); this.puff(this.cx - sign(this.vx) * 8, this.cy); }
         if (!P.dead && P.inv <= 0 && P.dashT <= 0 && !g.god && overlap({ x: this.x - 4, y: this.y, w: this.w + 8, h: this.h }, P)) {
-          this.held = true; P.frozen = true; P.inv = 999; P.vx = P.vy = 0; AU.sfx('stomp'); g.shake(8); g.popText('จับได้!', this.cx, this.y - 10, '#ffb0b0', 50);
+          this.held = true; this.heldP = P; P.frozen = true; P.inv = 999; P.vx = P.vy = 0; AU.sfx('stomp'); g.shake(8); g.popText('จับได้!', this.cx, this.y - 10, '#ffb0b0', 50);
           this.set('carry'); break;
         }
         if (this.y + this.h >= FLOOR) { this.y = FLOOR - this.h; g.shake(10); AU.sfx('stomp'); this.vx *= 0.5; this.set('miss'); }
         break;
       case 'carry':
         this.pose = 'grab'; this.y -= 2.6; this.x += this.face * 0.6; this.clampArena(4);
-        P.x = this.cx + this.face * 6 - P.w / 2; P.y = this.y + 14; P.vx = P.vy = 0;
+        { const H = this.heldP || P; H.x = this.cx + this.face * 6 - H.w / 2; H.y = this.y + 14; H.vx = H.vy = 0; } // always the player that was grabbed (co-op target can change)
         if (this.st % 3 === 0) this.puff(this.cx + rand(-4, 4), this.y + this.h, this.st % 9 === 0);
         if (this.y < 22 || this.st > 34) this.set('slamDown');
         break;
       case 'slamDown':
         this.pose = 'slam'; this.y += 7;
-        P.x = this.cx + this.face * 6 - P.w / 2; P.y = this.y + 14; P.vx = P.vy = 0;
+        { const H = this.heldP || P; H.x = this.cx + this.face * 6 - H.w / 2; H.y = this.y + 14; H.vx = H.vy = 0; }
         if (this.st % 2 === 0) g.afterimages.push({ boss: this, x: this.x, y: this.y, life: 8 });
         if (this.y + this.h >= FLOOR) {
-          this.y = FLOOR - this.h; this.held = false; P.frozen = false; P.inv = 0;
-          P.y = FLOOR - P.h; g.explode(P.cx, FLOOR - 6, 30, '#ff7a1a'); g.boom(P.cx + 10, FLOOR - 14, 18, '#ff4aa0');
-          P.inv = 0; P.hurt(g, 2, this.cx); AU.sfx('bigexplode'); g.shake(26); g.hitstop = 8;
+          const H = this.heldP || P; this.y = FLOOR - this.h; this.held = false; this.heldP = null; H.frozen = false; H.inv = 0;
+          H.y = FLOOR - H.h; g.explode(H.cx, FLOOR - 6, 30, '#ff7a1a'); g.boom(H.cx + 10, FLOOR - 14, 18, '#ff4aa0');
+          H.inv = 0; H.hurt(g, 2, this.cx); AU.sfx('bigexplode'); g.shake(26); g.hitstop = 8;
           this.set('tired');
         }
         break;
@@ -4689,9 +4689,9 @@ class BombDevil extends Boss {
         if (this.st > 20) this.set('tired');
         break;
     }
-    if (this.held && this.state !== 'carry' && this.state !== 'slamDown') { this.held = false; P.frozen = false; P.inv = 60; }
+    if (this.held && this.state !== 'carry' && this.state !== 'slamDown') { const H = this.heldP || P; this.held = false; this.heldP = null; H.frozen = false; H.inv = 60; }
   }
-  die() { if (this.held) { this.held = false; this.P.frozen = false; this.P.inv = 60; } super.die(); }
+  die() { if (this.held) { const H = this.heldP || this.P; this.held = false; this.heldP = null; H.frozen = false; H.inv = 60; } super.die(); }
   updateDeath() {
     const g = this.g, d = this.deathT;
     this.gravity(); this.pose = d < 80 ? 'tired' : 'kneel';
