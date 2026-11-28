@@ -2544,7 +2544,7 @@ const HOLDSK = {
   },
   updateFx(g) {
     if (!g.skfx || !g.skfx.length) return;
-    for (const f of g.skfx) { f.t++;
+    for (const f of g.skfx) { f.t++; g.gaugeOwner = f.p && !f.p.dead ? f.p : null;
       if (f.k === 'bspear') {
         if (f.delay > 0) { f.delay--; f.x = f.p.cx + f.p.face * 8; f.y = f.p.y + f.p.h * 0.4; if (f.t % 2 === 0) g.particle(f.x + rand(-6, 6), f.y + rand(-6, 6), (f.x - f.x) , 0, 10, '#c4121a', 1, 0, 'blood'); if (f.delay === 0) AU.sfx('shoot'); continue; }
         f.x += f.vx; f.y += f.vy; if (f.t % 2 === 0) g.particle(f.x - Math.sign(f.vx) * 16, f.y, 0, 0.3, 14, '#8a0a10', 1, 0.05, 'blood');
@@ -2566,7 +2566,7 @@ const HOLDSK = {
         if (f.t > f.life) f.dead = true;
       }
     }
-    g.skfx = g.skfx.filter(f => !f.dead);
+    g.gaugeOwner = null; g.skfx = g.skfx.filter(f => !f.dead);
   },
   drawFx(g, ctx, cx, cy) {
     if (!g.skfx) return;
@@ -3883,6 +3883,7 @@ class Boss {
     const A = this.g.player; if (A && A.devil && A.ch && (A.ch.id === 'denji' || A.ch.id === 'power')) dmg = Math.max(1, Math.round(dmg * 0.65)); // these two devil forms are toned down vs bosses
     const crit = this.isVuln(); if (crit) { dmg *= 2; this.g.popText('CRITICAL!', this.cx, this.y - 14, '#ffe040', 45, 1.2); }
     this.hp -= dmg; this.inv = 14; this.flash = 5;
+    { const A = this.g.gaugeOwner || this.g.player; if (A && A.addGauge && !A.dead) A.addGauge(Math.min(20, Math.round(3 + dmg * 1.5))); } // every hit that lands (melee, shots, skills) charges the devil gauge
     const g = this.g; g.hitFx(this.cx, this.y - 4, dmg); g.impact(clamp(fromX, this.x + 4, this.x + this.w - 4), this.cy + rand(-8, 8), sign(this.cx - fromX) || 1, Math.min(4, dmg + 1), false);
     const d3 = Math.min(dmg, 3);
     g.blood(clamp(fromX, this.x, this.x + this.w), this.cy + rand(-8, 8), 10 + d3 * 5, null, sign(this.cx - fromX));
@@ -6365,7 +6366,7 @@ class Session {
     const B = this.boss;
     if (B && this.phase === 'boss' && !P.dead) {
       const hb = B.hurtbox();
-      if (ab && overlap(ab, hb) && !P.hitSet.has(B)) { rumble(0.15, 0.45, 60, padOf(P)); if (B.hit((P.devil ? P.ch.devilDmg + (P.ch.heavy && P.ycombo === 2 ? 2 : 0) : P.ch.dmg) + P.airBonus(), P.cx)) { P.hitSet.add(B); P.onAirHit(this, B, true); if (P.devil && P.ch.heavy) { this.hitstop = P.ycombo === 2 ? 10 : 6; this.shake(P.ycombo === 2 ? 12 : 6); this.blood(B.cx, B.cy, 30, null, P.face); } P.addGauge(4); P.leechHit(this); if (P.devil && P.ch.gore) this.blood(P.cx + P.face * 18, P.cy, 22, null, P.face); } }
+      if (ab && overlap(ab, hb) && !P.hitSet.has(B)) { rumble(0.15, 0.45, 60, padOf(P)); if (B.hit((P.devil ? P.ch.devilDmg + (P.ch.heavy && P.ycombo === 2 ? 2 : 0) : P.ch.dmg) + P.airBonus(), P.cx)) { P.hitSet.add(B); P.onAirHit(this, B, true); if (P.devil && P.ch.heavy) { this.hitstop = P.ycombo === 2 ? 10 : 6; this.shake(P.ycombo === 2 ? 12 : 6); this.blood(B.cx, B.cy, 30, null, P.face); } P.leechHit(this); if (P.devil && P.ch.gore) this.blood(P.cx + P.face * 18, P.cy, 22, null, P.face); } }
       if (overlap(P, hb)) {
         if (P.dashT > 0) { if (!P.hitSet.has(B) && B.hit(P.devil ? 2 : 1, P.cx)) P.hitSet.add(B); }
         else if (P.vy > 0.5 && P.y + P.h - P.vy <= hb.y + 6 && !B.untouchable) { B.hit(1, P.cx); P.vy = -4.6; AU.sfx('stomp'); P.airDash = true; }
@@ -6714,11 +6715,12 @@ class Session {
     }
   }
   // ---- player projectiles (blood wave / spikes) ----
-  pshot(o) { (this.pshots || (this.pshots = [])).push(Object.assign({ t: 0, hit: new Set() }, o)); }
+  pshot(o) { (this.pshots || (this.pshots = [])).push(Object.assign({ t: 0, hit: new Set(), owner: this.player }, o)); }
   updatePShots() {
     if (!this.pshots) return;
     const B = this.boss, P = this.player;
     for (const s of this.pshots) {
+      this.gaugeOwner = s.owner && !s.owner.dead ? s.owner : null; // boss hits charge the shooter's devil gauge
       s.t++; s.life--;
       if (s.delay > 0) { s.delay--; s.life++; s.t--; continue; }
       if (s.kind === 'grenade') {
@@ -6766,6 +6768,7 @@ class Session {
       for (const e of this.enemies) if (!e.dead && e.active && !s.hit.has(e) && overlap(box, e)) { s.hit.add(e); e.hit(this, s.dmg, s.x - (s.vx || s.d || 0) * 4, s.kind === 'slashline' || s.kind === 'wsword'); P.leechHit(this); if (ENDHIT.has(s.kind)) s.life = 0; }
       if (B && this.phase === 'boss' && !s.hit.has(B) && overlap(box, B.hurtbox())) { if (B.hit(s.dmg, s.x - (s.vx || 0) * 4)) { s.hit.add(B); P.leechHit(this); } if (ENDHIT.has(s.kind)) s.life = 0; }
     }
+    this.gaugeOwner = null;
     this.pshots = this.pshots.filter(s => s.life > 0);
   }
   drawPShots(ctx, cx, cy) {
