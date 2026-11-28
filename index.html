@@ -4654,11 +4654,12 @@ class BombDevil extends Boss {
         if (this.st % 5 === 0) this.puff(this.cx, this.y + this.h);
         if (this.st > 34 / this.spd) {
           const tx = P.cx, ty = P.cy, dx = tx - this.cx, dy = ty - (this.y + this.h / 2), d = Math.hypot(dx, dy) || 1;
-          this.vx = dx / d * 5.2 * this.spd; this.vy = dy / d * 5.2 * this.spd; this.set('swoop'); this.puff(this.cx - this.face * 8, this.cy, true);
+          this.vx = dx / d * 5.2 * this.spd; this.vy = Math.max(2.4 * this.spd, dy / d * 5.2 * this.spd); this.set('swoop'); this.puff(this.cx - this.face * 8, this.cy, true); // always dives downward, even if the player jumped above her
         }
         break;
       case 'swoop':
-        this.pose = 'grab'; this.x += this.vx; this.y += this.vy; this.clampArena(2);
+        this.pose = 'grab'; this.vy = Math.max(this.vy, 2); this.x += this.vx; this.y += this.vy; this.clampArena(2);
+        if (this.st > 70) { this.y = FLOOR - this.h; this.vx *= 0.5; this.set('miss'); break; } // safety: never keep swooping forever
         if (this.st % 2 === 0) { g.afterimages.push({ boss: this, x: this.x, y: this.y, life: 10 }); this.puff(this.cx - sign(this.vx) * 8, this.cy); }
         if (!P.dead && P.inv <= 0 && P.dashT <= 0 && !g.god && overlap({ x: this.x - 4, y: this.y, w: this.w + 8, h: this.h }, P)) {
           this.held = true; this.heldP = P; P.frozen = true; P.inv = 999; P.vx = P.vy = 0; AU.sfx('stomp'); g.shake(8); g.popText('จับได้!', this.cx, this.y - 10, '#ffb0b0', 50);
@@ -4689,6 +4690,10 @@ class BombDevil extends Boss {
         if (this.st > 20) this.set('tired');
         break;
     }
+    // safety net: never leave the screen, and fall back to the floor if left hanging in the air outside a flying move
+    if (this.y < 4 && this.state !== 'carry') this.y = 4;
+    const airOK = ['flyUp', 'flyHover', 'swoop', 'carry', 'slamDown', 'hop', 'kami', 'kamiPrep', 'fuseDash', 'carpet', 'combo', 'rainbow'].includes(this.state);
+    if (!airOK && this.y + this.h < FLOOR - 1) { this.y = Math.min(FLOOR - this.h, this.y + 5); }
     if (this.held && this.state !== 'carry' && this.state !== 'slamDown') { const H = this.heldP || P; this.held = false; this.heldP = null; H.frozen = false; H.inv = 60; }
   }
   die() { if (this.held) { const H = this.heldP || this.P; this.held = false; this.heldP = null; H.frozen = false; H.inv = 60; } super.die(); }
